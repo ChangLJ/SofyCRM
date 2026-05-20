@@ -1,0 +1,62 @@
+# GCP Cloud Build — 建置前端（Mock Data）並部署至 Cloud Run
+# 用法：gcloud builds submit --config cloudbuild.yaml .
+#
+# 請先設定：
+#   gcloud config set project YOUR_PROJECT_ID
+#   gcloud services enable cloudbuild.googleapis.com run.googleapis.com artifactregistry.googleapis.com
+
+substitutions:
+  _REGION: asia-east1
+  _SERVICE: sofycrm
+  _REPO: sofycrm
+
+steps:
+  # 建立 Artifact Registry（若已存在可略過錯誤）
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud artifacts repositories describe ${_REPO} --location=${_REGION} 2>/dev/null \
+        || gcloud artifacts repositories create ${_REPO} \
+             --repository-format=docker --location=${_REGION} --description="SofyCRM images"
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$COMMIT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:latest
+      - -f
+      - frontend/Dockerfile
+      - frontend
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --memory=512Mi
+      - --cpu=1
+      - --min-instances=0
+      - --max-instances=3
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$COMMIT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

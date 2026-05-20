@@ -1,0 +1,30 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.local
+.env
+.env.local
+.env.*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+appsettings.Development.local.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+*.log
