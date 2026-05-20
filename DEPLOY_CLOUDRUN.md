@@ -13,10 +13,19 @@ gcloud auth login
 gcloud config set project YOUR_PROJECT_ID
 ```
 
-## 方式 A：一鍵腳本（Windows）
+## 方式 A：一鍵腳本
 
+**Windows**
 ```bat
 DeployCloudRun.bat
+```
+
+**Cloud Shell / Linux / macOS**
+```bash
+git clone https://github.com/ChangLJ/SofyCRM.git
+cd SofyCRM
+chmod +x deploy-cloudrun.sh
+./deploy-cloudrun.sh
 ```
 
 完成後終端機會印出服務 URL，例如：`https://sofycrm-xxxxx-de.a.run.app`
