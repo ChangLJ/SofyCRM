@@ -83,8 +83,45 @@ git push -u origin main
 
 ## 常見問題
 
-**Q: 仍看到 401？**  
-A: 清除瀏覽器該網站的 localStorage（`sofycrm.auth`、`sofycrm.dataSource`），重新整理後用 Mock 身份登入。
+### PERMISSION_DENIED：Build failed / compute@developer.gserviceaccount.com
 
-**Q: 要連真實後端？**  
-A: 需另外部署 `backend` 至 Cloud Run / GKE，並改回 Real API 模式（目前專案已固定 Mock）。
+Cloud Run 從原始碼部署時，預設服務帳戶需存取 GCS（`run-sources-*` bucket）。在 Cloud Shell 執行：
+
+```bash
+cd SofyCRM   # 或 git clone 後進入目錄
+chmod +x fix-cloudrun-iam.sh
+./fix-cloudrun-iam.sh macro-truck-496913-m1
+```
+
+或手動（將 `PROJECT_NUMBER` 換成你的專案編號，例如 `933927389657`）：
+
+```bash
+PROJECT_ID=macro-truck-496913-m1
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com storage.googleapis.com
+
+# Cloud Build 服務帳戶
+for ROLE in roles/run.admin roles/artifactregistry.writer roles/storage.admin roles/iam.serviceAccountUser roles/cloudbuild.builds.builder; do
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+    --role=$ROLE
+done
+
+# 預設 Compute 服務帳戶（上傳原始碼 zip 時需要）
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role=roles/storage.objectAdmin
+```
+
+完成後再執行 `./deploy-cloudrun.sh`。
+
+參考：[Cloud Run build service account](https://cloud.google.com/run/docs/configuring/services/build-service-account)
+
+### 仍看到 401？
+
+清除瀏覽器該網站的 localStorage（`sofycrm.auth`、`sofycrm.dataSource`），重新整理後用 Mock 身份登入。
+
+### 要連真實後端？
+
+需另外部署 `backend` 至 Cloud Run / GKE（目前專案已固定 Mock）。
